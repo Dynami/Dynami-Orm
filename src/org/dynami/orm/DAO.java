@@ -1,5 +1,7 @@
 package org.dynami.orm;
 
-public class DAO {
-
+public enum DAO {
+	$;
+	
+	
 }
