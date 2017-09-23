@@ -29,22 +29,41 @@ import java.util.function.Consumer;
 
 import javax.sql.DataSource;
 
+/**
+ * DAO is a lightweight and basic ORM (Object Relational Mapping) and expose primary methods to handle data in RDBMS.
+ * DAO generates standard SQL, specific instructions can be executed passing sql statements and using DAO only as pojo-sql mapping engine.
+ *  
+ * @author Alessandro Atria a.atri@gmail.com
+ *
+ */
 public enum DAO {
 	$;
+	
 	private final static String INNER_DB = "INNER_DB";
 	private DataSource ds;
 	private static final Map<String, Map<String, Object>> cached_objects = new TreeMap<>(); 
 	private static final Map<String, List<Class<?>>> cached_classes = new TreeMap<>();
 	
+	/**
+	 * 
+	 * @param ds
+	 */
 	public void setUp(DataSource ds) {
 		this.ds = ds;
 	}
 	
+	/**
+	 * Get single instance identified by primary keys
+	 * @param clazz
+	 * @param primaryKey get in the same order as defined in class
+	 * @return valued object
+	 * @throws Exception
+	 */
 	@SuppressWarnings("unchecked")
-	public <T> T load(Class<T> clazz, Object... values) throws Exception {
+	public <T> T load(Class<T> clazz, Object... primaryKey) throws Exception {
 		boolean cacheable = checkEntityTable(clazz);
 		if(cacheable && cached_objects.get(clazz.getName()) != null){
-			T res = (T)cached_objects.get(clazz.getName()).get(DAOReflect.asString( values ));
+			T res = (T)cached_objects.get(clazz.getName()).get(DAOReflect.asString( primaryKey ));
 			if(res != null){
 				return res;
 			}
@@ -53,14 +72,14 @@ public enum DAO {
 			Object entity = clazz.newInstance();
 			Field[] pk = DAOReflect.pk(entity);
 			for (int i = 0; i < pk.length; i++) {
-				DAOReflect.set(entity, pk[i], values[i]);
+				DAOReflect.set(entity, pk[i], primaryKey[i]);
 			}
 			Object res = get(entity);
 			if(cacheable && res != null){
 				if(cached_objects.get(clazz.getName()) == null){
 					cached_objects.put(clazz.getName(), new ConcurrentSkipListMap<String, Object>());
 				}
-				cached_objects.get(clazz.getName()).put(DAOReflect.asString( values ), res);
+				cached_objects.get(clazz.getName()).put(DAOReflect.asString( primaryKey ), res);
 			}
 			return (T) res;
 		}catch(Exception e){
@@ -69,6 +88,7 @@ public enum DAO {
 			throw e;
 		}
 	}
+	
 	
 	public <T> T get(T entity) throws Exception {
 		checkEntityTable(entity.getClass());
@@ -103,6 +123,13 @@ public enum DAO {
 		}
 	}
 	
+	
+	/**
+	 * Update entity passed as parameter
+	 * @param entity uses the primary field values in where condition to identify records
+	 * @return the number of records updated 
+	 * @throws Exception
+	 */
 	public <T> int update(T entity) throws Exception {
 		boolean cacheble = checkEntityTable(entity.getClass());
 		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
@@ -121,6 +148,13 @@ public enum DAO {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param entity update entity passed as parameter excluding defined fields
+	 * @param exclude list of fields to be excluded
+	 * @return the number of records updated
+	 * @throws Exception
+	 */
 	public <T> int update(T entity, String...exclude) throws Exception {
 		boolean cacheble = checkEntityTable(entity.getClass());
 		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
@@ -139,6 +173,12 @@ public enum DAO {
 		}
 	}
 	
+	/**
+	 * Deletes passed entity defined by valued primary keys
+	 * @param entity primary keys field have to be valued to avoid undesired deletions
+	 * @return the number of records deleted
+	 * @throws Exception
+	 */
 	public <T> int delete(T entity) throws Exception {
 		boolean cacheble = checkEntityTable(entity.getClass());
 		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
@@ -157,6 +197,12 @@ public enum DAO {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param entity
+	 * @return
+	 * @throws Exception
+	 */
 	public int insert(Object entity) throws Exception {
 		if(entity == null) return -1;
 		checkEntityTable(entity.getClass());
