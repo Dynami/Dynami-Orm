@@ -222,7 +222,7 @@ public class Criteria<T> {
 		return this;
 	}
 	
-	public Criteria<T> andIn(String field, Object[] values){
+	public Criteria<T> andIn(String field, Object... values){
 		try {
 			criteria.add(new Where(Where.AND, DAOReflect.getName(clazz, field), Where.IN, values));
 		} catch (Exception e) {
@@ -232,7 +232,7 @@ public class Criteria<T> {
 		return this;
 	}
 	
-	public Criteria<T> orIn(String field, Object[] values){
+	public Criteria<T> orIn(String field, Object... values){
 		try {
 			criteria.add(new Where(Where.OR, DAOReflect.getName(clazz, field), Where.IN, values));
 		} catch (Exception e) {
@@ -242,7 +242,7 @@ public class Criteria<T> {
 		return this;
 	}
 	
-	public Criteria<T> andNotIn(String field, Object[] values){
+	public Criteria<T> andNotIn(String field, Object... values){
 		try {
 			criteria.add(new Where(Where.AND, DAOReflect.getName(clazz, field), Where.NOT_IN, values));
 		} catch (Exception e) {
@@ -278,7 +278,7 @@ public class Criteria<T> {
 		return this;
 	}
 	
-	public Criteria<T> groupBy(String fields[]){
+	public Criteria<T> groupBy(String... fields){
 		this.groupBy = fields;
 		return this;
 	}

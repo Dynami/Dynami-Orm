@@ -447,13 +447,12 @@ public enum DAO {
 	}
 	
 	
-	public <T> boolean save(T entity, Criteria<T> criteria) throws Exception{
+	public <T> boolean insertIfNotExist(T entity, Criteria<? extends T> criteria) throws Exception{
 		checkEntityTable(entity.getClass());
 		if(!exists(criteria)){
 			insert(entity);
 			return true;
 		} else {
-			
 			return false;
 		}
 	}
