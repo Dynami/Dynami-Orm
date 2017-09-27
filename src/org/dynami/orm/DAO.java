@@ -39,8 +39,11 @@ import javax.sql.DataSource;
 public enum DAO {
 	$;
 	
+	public enum Rdbms {Sqlite, MySql};
+	
 	private final static String INNER_DB = "INNER_DB";
 	private DataSource ds;
+	private Rdbms rdbms;
 	private static final Map<String, Map<String, Object>> cached_objects = new TreeMap<>(); 
 	private static final Map<String, List<Class<?>>> cached_classes = new TreeMap<>();
 	
@@ -48,8 +51,9 @@ public enum DAO {
 	 * 
 	 * @param ds
 	 */
-	public void setUp(DataSource ds) {
+	public void setUp(Rdbms rdbms, DataSource ds) {
 		this.ds = ds;
+		this.rdbms = rdbms;
 	}
 	
 	/**
@@ -131,8 +135,8 @@ public enum DAO {
 	 * @throws Exception
 	 */
 	public <T> int update(T entity) throws Exception {
-		boolean cacheble = checkEntityTable(entity.getClass());
-		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
+		boolean cachable = checkEntityTable(entity.getClass());
+		if(cachable && cached_objects.get(entity.getClass().getName()) != null){
 			cached_objects.get(entity.getClass().getName()).remove(DAOReflect.asString( DAOReflect.pkValues(entity) ));
 		}
 		PreparedStatement pstmt = null;
@@ -490,7 +494,7 @@ public enum DAO {
 		}
 		if(!cached_classes.get(INNER_DB).contains(entity)){
 			cached_classes.get(INNER_DB).add(entity);
-			executeNativeSQL(DAOReflect.sqlTableScript(DAOReflect.getEntity(entity)));
+			executeNativeSQL(DAOReflect.sqlTableScript(rdbms, DAOReflect.getEntity(entity)));
 		}
 		IEntity a = entity.getAnnotation(IEntity.class);
 		if(a != null){

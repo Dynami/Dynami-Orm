@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.dynami.orm.DAO.Rdbms;
+
 class DAOReflect {
 	private static SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 	private static SimpleDateFormat DATE_TYPE = new SimpleDateFormat("yyyyMMdd");
@@ -161,8 +163,18 @@ class DAOReflect {
 			//log.error("Failed object print", e);
 		}
 	}
-	// FIXME if there's a table with multiple primary key, they need to be set with a proper script
-	public static String sqlTableScript(Class<?> clazz) throws Exception {
+	
+	public static String sqlTableScript(DAO.Rdbms rdbms, Class<?> clazz) throws Exception {
+		if(DAO.Rdbms.Sqlite.equals(rdbms)) {
+			return sqliteTableScript(clazz);
+		} else if(DAO.Rdbms.MySql.equals(rdbms)) {
+			return mySqlTableScript(clazz);
+		} else {
+			return null;
+		}
+	}
+	
+	private static String sqliteTableScript(Class<?> clazz) throws Exception {
 		if(clazz == null){
 			throw new RuntimeException("Object passed as parameter not valued");
 		}
@@ -187,7 +199,7 @@ class DAOReflect {
 //			buffer.append("\t");
 			fieldName = getName(fields[i]);
 			tableBuffer.append(fieldName);
-			tableBuffer.append(getType(fields[i]));
+			tableBuffer.append(getType(Rdbms.Sqlite, fields[i]));
 			if(f.pk()){
 				if(isPrimaryKeySetted) {
 					pkBuilder.append(", ");
@@ -197,6 +209,75 @@ class DAOReflect {
 			}
 			if(f.serial()){
 				tableBuffer.append(" AUTOINCREMENT ");
+			}
+			if(!f.nullable()){
+				tableBuffer.append(" NOT NULL ");
+			}
+			if(f.unique()){
+				tableBuffer.append(" UNIQUE ");
+			}
+			if(!"".equals(f.defaultValue())){
+				tableBuffer.append(" DEFAULT "+f.defaultValue());
+			}
+			
+			if(f.index()){
+				indexBuffer.append("\nCREATE INDEX IF NOT EXISTS ");
+				indexBuffer.append(tableName);
+				indexBuffer.append("_");
+				indexBuffer.append(fieldName);
+				indexBuffer.append("_idx ON ");
+				indexBuffer.append(tableName);
+				indexBuffer.append("(");
+				indexBuffer.append(fieldName);
+				indexBuffer.append(");");
+			}
+			
+			if(i < fields.length-1)
+			tableBuffer.append(",");
+		}
+		if(isPrimaryKeySetted) {
+			pkBuilder.append(")");
+			tableBuffer.append(pkBuilder.toString());
+		}
+		tableBuffer.append(");");
+		return tableBuffer.toString()+indexBuffer.toString();
+	}
+	
+	private static String mySqlTableScript(Class<?> clazz) throws Exception {
+		if(clazz == null){
+			throw new RuntimeException("Object passed as parameter not valued");
+		}
+		//Class<?> c = getEntity(clazz);
+		IEntity a = clazz.getAnnotation(IEntity.class);
+		if(a == null){
+			throw new RuntimeException("Object passed as parameter not a valid table class");
+		}
+		String tableName = getTableName(clazz);
+		String fieldName;
+		StringBuilder tableBuffer = new StringBuilder();
+		StringBuilder indexBuffer = new StringBuilder();
+		StringBuilder pkBuilder = new StringBuilder(" ,PRIMARY KEY(");
+		tableBuffer.append("CREATE TABLE IF NOT EXISTS ");
+		tableBuffer.append(tableName);
+		tableBuffer.append(" ( ");
+		Field[] fields = fields(clazz, true);
+		IField f = null;
+		boolean isPrimaryKeySetted = false;
+		for (int i = 0; i < fields.length; i++) {
+			f = fields[i].getAnnotation(IField.class);
+//			buffer.append("\t");
+			fieldName = getName(fields[i]);
+			tableBuffer.append(fieldName);
+			tableBuffer.append(getType(Rdbms.MySql, fields[i]));
+			if(f.pk()){
+				if(isPrimaryKeySetted) {
+					pkBuilder.append(", ");
+				}
+				pkBuilder.append(fieldName);
+				isPrimaryKeySetted = true;
+			}
+			if(f.serial()){
+				tableBuffer.append(" AUTO_INCREMENT ");
 			}
 			if(!f.nullable()){
 				tableBuffer.append(" NOT NULL ");
@@ -311,7 +392,7 @@ class DAOReflect {
 		}
 	}
 	
-	private static String getType(Field field){
+	private static String getType(DAO.Rdbms rdbms, Field field){
 		IField f = field.getAnnotation(IField.class);
 		if(f == null || "".equals( f.type())){
 			if(field.getType().equals(String.class)){
@@ -321,25 +402,45 @@ class DAOReflect {
 					return " VARCHAR(255) ";
 				}
 			} else if(field.getType().equals(java.util.Date.class)){
-				return " INTEGER ";
+				if(Rdbms.Sqlite.equals(rdbms)) {
+					return " INTEGER ";
+				} else if(Rdbms.MySql.equals(rdbms)) {
+					return " DATETIME ";
+				}
 			} else if(field.getType().equals(double.class)){
-				return " REAL ";
+				if(Rdbms.Sqlite.equals(rdbms)) {
+					return " REAL ";
+				} else if(Rdbms.MySql.equals(rdbms)) {
+					return " DOUBLE ";
+				}
+				
 			} else if(field.getType().equals(float.class)){
-				return " REAL ";
+				if(Rdbms.Sqlite.equals(rdbms)) {
+					return " REAL ";
+				} else if(Rdbms.MySql.equals(rdbms)) {
+					return " FLOAT ";
+				}
 			} else if(field.getType().equals(int.class)){
 				return " INTEGER ";
 			} else if(field.getType().equals(boolean.class)){
-				return " INTEGER ";
+				if(Rdbms.Sqlite.equals(rdbms)) {
+					return " INTEGER ";
+				} else if(Rdbms.MySql.equals(rdbms)) {
+					return " BOOLEAN ";
+				}
 			} else if(field.getType().equals(long.class)){
-				return " INTEGER ";
-//			} else if(field.getType().equals(boolean.class)){
-//				return " INTEGER ";
+				if(Rdbms.Sqlite.equals(rdbms)) {
+					return " INTEGER ";
+				} else if(Rdbms.MySql.equals(rdbms)) {
+					return " BIGINT ";
+				}
 			} else {
 				return " VARCHAR(50) ";
 			}
 		} else {
 			return " "+f.type()+" ";
 		}
+		return null;
 	}
 	
 	public static Field getName(Class<?> clazz, String field) throws Exception{
