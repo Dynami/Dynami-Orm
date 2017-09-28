@@ -44,16 +44,31 @@ public enum DAO {
 	private final static String INNER_DB = "INNER_DB";
 	private DataSource ds;
 	private Rdbms rdbms;
+	private Release release;
 	private static final Map<String, Map<String, Object>> cached_objects = new TreeMap<>(); 
 	private static final Map<String, List<Class<?>>> cached_classes = new TreeMap<>();
 	
-	/**
-	 * 
-	 * @param ds
-	 */
+	@FunctionalInterface
+	public interface Release extends Consumer<Connection> {
+		@Override
+		default void accept(final Connection elem) {
+			try {
+				acceptThrows(elem);
+			} catch (final Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+		void acceptThrows(Connection elem) throws Exception;
+	}
+	
 	public void setUp(Rdbms rdbms, DataSource ds) {
+		setUp(rdbms, ds, null);
+	}
+	
+	public void setUp(Rdbms rdbms, DataSource ds, Release release) {
 		this.ds = ds;
 		this.rdbms = rdbms;
+		this.release = release;
 	}
 	
 	/**
@@ -98,8 +113,9 @@ public enum DAO {
 		checkEntityTable(entity.getClass());
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
+		Connection conn = ds.getConnection();
 		try {
-			pstmt = SqlUtils.sqlSelect(ds.getConnection(), entity);
+			pstmt = SqlUtils.sqlSelect(conn, entity);
 			
 			res = pstmt.executeQuery();
 			Field[] fields = DAOReflect.fields(entity, true); // entity.getClass().getDeclaredFields();
@@ -124,6 +140,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -139,9 +156,10 @@ public enum DAO {
 		if(cachable && cached_objects.get(entity.getClass().getName()) != null){
 			cached_objects.get(entity.getClass().getName()).remove(DAOReflect.asString( DAOReflect.pkValues(entity) ));
 		}
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		try{
-			pstmt = SqlUtils.sqlUpdate(ds.getConnection(), entity);
+			pstmt = SqlUtils.sqlUpdate(conn, entity);
 			return pstmt.executeUpdate();
 		} catch (Exception e) {
 			DAOReflect.logObject(entity);
@@ -149,6 +167,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -164,9 +183,10 @@ public enum DAO {
 		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
 			cached_objects.get(entity.getClass().getName()).remove(DAOReflect.asString( DAOReflect.pkValues(entity) ));
 		}
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		try{
-			pstmt = SqlUtils.sqlUpdate(ds.getConnection(), entity, exclude);
+			pstmt = SqlUtils.sqlUpdate(conn, entity, exclude);
 			return pstmt.executeUpdate();
 		} catch (Exception e) {
 			DAOReflect.logObject(entity);
@@ -174,6 +194,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -188,9 +209,10 @@ public enum DAO {
 		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
 			cached_objects.get(entity.getClass().getName()).remove(DAOReflect.asString( DAOReflect.pkValues(entity) ));
 		}
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		try{
-			pstmt = SqlUtils.sqlDelete(ds.getConnection(), entity);
+			pstmt = SqlUtils.sqlDelete(conn, entity);
 			return pstmt.executeUpdate();
 		} catch (Exception e) {
 			DAOReflect.logObject(entity);
@@ -198,6 +220,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -211,8 +234,8 @@ public enum DAO {
 		if(entity == null) return -1;
 		checkEntityTable(entity.getClass());
 		PreparedStatement pstmt = null;
+		Connection conn = ds.getConnection();
 		try{
-			Connection conn = ds.getConnection();
 			pstmt = SqlUtils.sqlInsert(conn, entity);
 			return pstmt.executeUpdate();
 		} catch (Exception e) {
@@ -220,6 +243,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -229,9 +253,10 @@ public enum DAO {
 			cached_objects.remove(criteria.clazz.getName());
 		}
 		int result = 0;
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = SqlUtils.sqlDeleteByCriteria(ds.getConnection(), criteria);
+			pstmt = SqlUtils.sqlDeleteByCriteria(conn, criteria);
 			result = pstmt.executeUpdate();
 			return result;
 		} catch (Exception e) {
@@ -239,6 +264,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -248,8 +274,9 @@ public enum DAO {
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
 		List<T> result = new ArrayList<T>();
+		Connection conn = ds.getConnection();
 		try {
-			pstmt = SqlUtils.sqlSelectByCriteria(ds.getConnection(), criteria);
+			pstmt = SqlUtils.sqlSelectByCriteria(conn, criteria);
 			Object entity = criteria.getIEntity();
 			res = pstmt.executeQuery();
 			Field[] fields = DAOReflect.fields(entity, true); //entity.getClass().getDeclaredFields();
@@ -273,6 +300,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -281,9 +309,10 @@ public enum DAO {
 		checkEntityTable(criteria.clazz);
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
+		Connection conn = ds.getConnection();
 //		List<T> result = new ArrayList<T>();
 		try {
-			pstmt = SqlUtils.sqlSelectByCriteria(ds.getConnection(), criteria);
+			pstmt = SqlUtils.sqlSelectByCriteria(conn, criteria);
 			Object entity = criteria.getIEntity();
 			res = pstmt.executeQuery();
 			Field[] fields = DAOReflect.fields(entity, true); //entity.getClass().getDeclaredFields();
@@ -307,16 +336,18 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
 	@SuppressWarnings("unchecked")
 	public <T> int select(Criteria<T> criteria, Consumer<T> fetch) throws Exception {
 		checkEntityTable(criteria.clazz);
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
 		try {
-			pstmt = SqlUtils.sqlSelectByCriteria(ds.getConnection(), criteria);
+			pstmt = SqlUtils.sqlSelectByCriteria(conn, criteria);
 			Object entity = criteria.getIEntity();
 			res = pstmt.executeQuery();
 			Field[] fields = DAOReflect.fields(entity, true); //entity.getClass().getDeclaredFields();
@@ -340,16 +371,17 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
 	public <T extends Number> T number(Class<T> clazz, String sql, Object...values) throws Exception{
 		if(ds == null) throw new Exception("Datasource not settled up");
-		
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
 		try {
-			pstmt = ds.getConnection().prepareStatement(sql);
+			pstmt = conn.prepareStatement(sql);
 			int idx = 1;
 			for(Object v:values){
 				pstmt.setObject(idx++, v);
@@ -376,17 +408,18 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
 	public <T> List<T> select(Class<T> clazz, String sql, Object...values) throws Exception {
 		if(ds == null) throw new Exception("Datasource not settled up");
-		
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
 		List<T> result = new ArrayList<T>();
 		try {
-			pstmt = ds.getConnection().prepareStatement(sql);
+			pstmt = conn.prepareStatement(sql);
 			int idx = 1;
 			for(Object v:values){
 				pstmt.setObject(idx++, v);
@@ -408,15 +441,17 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
 	public <T> T selectFirst(Class<T> clazz, String sql, Object...values) throws Exception {
 		if(ds == null) throw new Exception("Datasource not settled up");
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		ResultSet res = null;
 		try {
-			pstmt = ds.getConnection().prepareStatement(sql);
+			pstmt = conn.prepareStatement(sql);
 			int idx = 1;
 			for(Object v:values){
 				pstmt.setObject(idx++, v);
@@ -438,6 +473,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
+			if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -468,8 +504,8 @@ public enum DAO {
 	
 	public void executeNativeSQL(String sql) throws Exception {
 		Statement pstmt = null;
+		Connection conn = ds.getConnection();
 		try{
-			Connection conn = ds.getConnection();
 			pstmt = conn.createStatement();
 			String[] statements = sql.split(";");
 			for(String s:statements){
@@ -480,6 +516,7 @@ public enum DAO {
 			throw e;
 		} finally{
 			 SqlUtils.closeAll(pstmt);
+			 if(release != null) release.accept(conn);
 		}
 	}
 	
@@ -505,9 +542,10 @@ public enum DAO {
 	
 	public void executeNativeSQL(String sql, Object...values) throws Exception {
 		if(ds == null) throw new Exception("Datasource not settled up");
+		Connection conn = ds.getConnection();
 		PreparedStatement pstmt = null;
 		try{
-			pstmt = ds.getConnection().prepareStatement(sql);
+			pstmt = conn.prepareStatement(sql);
 			for(int i = 1; i <= values.length; i++){
 				pstmt.setObject(i, values[i-1]);
 			}
@@ -516,6 +554,7 @@ public enum DAO {
 			throw e;
 		} finally{
 			 SqlUtils.closeAll(pstmt);
+			 if(release != null) release.accept(conn);
 		}
 	}
 	
