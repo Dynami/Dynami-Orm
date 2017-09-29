@@ -39,11 +39,11 @@ import javax.sql.DataSource;
 public enum DAO {
 	$;
 	
-	public enum Rdbms {Sqlite, MySql};
+	public enum SqlDialect {Sqlite, MySql};
 	
 	private final static String INNER_DB = "INNER_DB";
 	private DataSource ds;
-	private Rdbms rdbms;
+	private SqlDialect sqlDialect;
 	private Release release;
 	private static final Map<String, Map<String, Object>> cached_objects = new TreeMap<>(); 
 	private static final Map<String, List<Class<?>>> cached_classes = new TreeMap<>();
@@ -61,13 +61,13 @@ public enum DAO {
 		void acceptThrows(Connection elem) throws Exception;
 	}
 	
-	public void setUp(Rdbms rdbms, DataSource ds) {
-		setUp(rdbms, ds, null);
+	public void setUp(SqlDialect sqlDialect, DataSource ds) {
+		setUp(sqlDialect, ds, null);
 	}
 	
-	public void setUp(Rdbms rdbms, DataSource ds, Release release) {
+	public void setUp(SqlDialect sqlDialect, DataSource ds, Release release) {
 		this.ds = ds;
-		this.rdbms = rdbms;
+		this.sqlDialect = sqlDialect;
 		this.release = release;
 	}
 	
@@ -531,7 +531,7 @@ public enum DAO {
 		}
 		if(!cached_classes.get(INNER_DB).contains(entity)){
 			cached_classes.get(INNER_DB).add(entity);
-			executeNativeSQL(DAOReflect.sqlTableScript(rdbms, DAOReflect.getEntity(entity)));
+			executeNativeSQL(DAOReflect.sqlTableScript(sqlDialect, DAOReflect.getEntity(entity)));
 		}
 		IEntity a = entity.getAnnotation(IEntity.class);
 		if(a != null){

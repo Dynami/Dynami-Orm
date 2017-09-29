@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.dynami.orm.DAO.Rdbms;
+import org.dynami.orm.DAO.SqlDialect;
 
 class DAOReflect {
 	private static SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
@@ -164,10 +164,10 @@ class DAOReflect {
 		}
 	}
 	
-	public static String sqlTableScript(DAO.Rdbms rdbms, Class<?> clazz) throws Exception {
-		if(DAO.Rdbms.Sqlite.equals(rdbms)) {
+	public static String sqlTableScript(DAO.SqlDialect rdbms, Class<?> clazz) throws Exception {
+		if(DAO.SqlDialect.Sqlite.equals(rdbms)) {
 			return sqliteTableScript(clazz);
-		} else if(DAO.Rdbms.MySql.equals(rdbms)) {
+		} else if(DAO.SqlDialect.MySql.equals(rdbms)) {
 			return mySqlTableScript(clazz);
 		} else {
 			return null;
@@ -199,7 +199,7 @@ class DAOReflect {
 //			buffer.append("\t");
 			fieldName = getName(fields[i]);
 			tableBuffer.append(fieldName);
-			tableBuffer.append(getType(Rdbms.Sqlite, fields[i]));
+			tableBuffer.append(getType(SqlDialect.Sqlite, fields[i]));
 			if(f.pk()){
 				if(isPrimaryKeySetted) {
 					pkBuilder.append(", ");
@@ -268,7 +268,7 @@ class DAOReflect {
 //			buffer.append("\t");
 			fieldName = getName(fields[i]);
 			tableBuffer.append(fieldName);
-			tableBuffer.append(getType(Rdbms.MySql, fields[i]));
+			tableBuffer.append(getType(SqlDialect.MySql, fields[i]));
 			if(f.pk()){
 				if(isPrimaryKeySetted) {
 					pkBuilder.append(", ");
@@ -392,7 +392,7 @@ class DAOReflect {
 		}
 	}
 	
-	private static String getType(DAO.Rdbms rdbms, Field field){
+	private static String getType(DAO.SqlDialect rdbms, Field field){
 		IField f = field.getAnnotation(IField.class);
 		if(f == null || "".equals( f.type())){
 			if(field.getType().equals(String.class)){
@@ -402,36 +402,36 @@ class DAOReflect {
 					return " VARCHAR(255) ";
 				}
 			} else if(field.getType().equals(java.util.Date.class)){
-				if(Rdbms.Sqlite.equals(rdbms)) {
+				if(SqlDialect.Sqlite.equals(rdbms)) {
 					return " INTEGER ";
-				} else if(Rdbms.MySql.equals(rdbms)) {
+				} else if(SqlDialect.MySql.equals(rdbms)) {
 					return " DATETIME ";
 				}
 			} else if(field.getType().equals(double.class)){
-				if(Rdbms.Sqlite.equals(rdbms)) {
+				if(SqlDialect.Sqlite.equals(rdbms)) {
 					return " REAL ";
-				} else if(Rdbms.MySql.equals(rdbms)) {
+				} else if(SqlDialect.MySql.equals(rdbms)) {
 					return " DOUBLE ";
 				}
 				
 			} else if(field.getType().equals(float.class)){
-				if(Rdbms.Sqlite.equals(rdbms)) {
+				if(SqlDialect.Sqlite.equals(rdbms)) {
 					return " REAL ";
-				} else if(Rdbms.MySql.equals(rdbms)) {
+				} else if(SqlDialect.MySql.equals(rdbms)) {
 					return " FLOAT ";
 				}
 			} else if(field.getType().equals(int.class)){
 				return " INTEGER ";
 			} else if(field.getType().equals(boolean.class)){
-				if(Rdbms.Sqlite.equals(rdbms)) {
+				if(SqlDialect.Sqlite.equals(rdbms)) {
 					return " INTEGER ";
-				} else if(Rdbms.MySql.equals(rdbms)) {
+				} else if(SqlDialect.MySql.equals(rdbms)) {
 					return " BOOLEAN ";
 				}
 			} else if(field.getType().equals(long.class)){
-				if(Rdbms.Sqlite.equals(rdbms)) {
+				if(SqlDialect.Sqlite.equals(rdbms)) {
 					return " INTEGER ";
-				} else if(Rdbms.MySql.equals(rdbms)) {
+				} else if(SqlDialect.MySql.equals(rdbms)) {
 					return " BIGINT ";
 				}
 			} else {
