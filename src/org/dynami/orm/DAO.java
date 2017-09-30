@@ -66,7 +66,7 @@ public enum DAO {
 	}
 	
 	public void setup(SqlDialect sqlDialect, DataSource ds) {
-		setup(sqlDialect, ds, null);
+		setup(sqlDialect, ds, c->{});
 	}
 	
 	public void setup(SqlDialect sqlDialect, DataSource ds, Release release) {
@@ -84,8 +84,8 @@ public enum DAO {
 	 */
 	@SuppressWarnings("unchecked")
 	public <T> T load(Class<T> clazz, Object... primaryKey) throws Exception {
-		boolean cacheable = checkEntityTable(clazz);
-		if(cacheable && cached_objects.get(clazz.getName()) != null){
+		boolean cachable = checkEntityTable(clazz);
+		if(cachable && cached_objects.get(clazz.getName()) != null){
 			T res = (T)cached_objects.get(clazz.getName()).get(DAOReflect.asString( primaryKey ));
 			if(res != null){
 				return res;
@@ -98,7 +98,7 @@ public enum DAO {
 				DAOReflect.set(entity, pk[i], primaryKey[i]);
 			}
 			Object res = get(entity);
-			if(cacheable && res != null){
+			if(cachable && res != null){
 				if(cached_objects.get(clazz.getName()) == null){
 					cached_objects.put(clazz.getName(), new ConcurrentSkipListMap<String, Object>());
 				}
@@ -144,7 +144,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -171,7 +171,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -183,8 +183,8 @@ public enum DAO {
 	 * @throws Exception
 	 */
 	public <T> int update(T entity, String...exclude) throws Exception {
-		boolean cacheble = checkEntityTable(entity.getClass());
-		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
+		boolean cachable = checkEntityTable(entity.getClass());
+		if(cachable && cached_objects.get(entity.getClass().getName()) != null){
 			cached_objects.get(entity.getClass().getName()).remove(DAOReflect.asString( DAOReflect.pkValues(entity) ));
 		}
 		Connection conn = ds.getConnection();
@@ -198,7 +198,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -209,8 +209,8 @@ public enum DAO {
 	 * @throws Exception
 	 */
 	public <T> int delete(T entity) throws Exception {
-		boolean cacheble = checkEntityTable(entity.getClass());
-		if(cacheble && cached_objects.get(entity.getClass().getName()) != null){
+		boolean cachable = checkEntityTable(entity.getClass());
+		if(cachable && cached_objects.get(entity.getClass().getName()) != null){
 			cached_objects.get(entity.getClass().getName()).remove(DAOReflect.asString( DAOReflect.pkValues(entity) ));
 		}
 		Connection conn = ds.getConnection();
@@ -224,7 +224,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -247,13 +247,13 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
 	public <T> int delete(Criteria<T> criteria) throws Exception {
-		boolean cacheable = checkEntityTable(criteria.clazz);
-		if(cacheable){
+		boolean cachable = checkEntityTable(criteria.clazz);
+		if(cachable){
 			cached_objects.remove(criteria.clazz.getName());
 		}
 		int result = 0;
@@ -268,7 +268,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -304,7 +304,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -340,7 +340,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -375,7 +375,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -412,7 +412,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -445,7 +445,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -477,7 +477,7 @@ public enum DAO {
 			throw e;
 		} finally {
 			SqlUtils.closeAll(pstmt, res);
-			if(release != null) release.accept(conn);
+			release.accept(conn);
 		}
 	}
 	
@@ -520,7 +520,7 @@ public enum DAO {
 			throw e;
 		} finally{
 			 SqlUtils.closeAll(pstmt);
-			 if(release != null) release.accept(conn);
+			 release.accept(conn);
 		}
 	}
 	
@@ -558,7 +558,7 @@ public enum DAO {
 			throw e;
 		} finally{
 			 SqlUtils.closeAll(pstmt);
-			 if(release != null) release.accept(conn);
+			 release.accept(conn);
 		}
 	}
 	
