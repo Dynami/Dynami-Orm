@@ -15,6 +15,7 @@
  */
 package org.dynami.orm;
 
+import java.io.PrintWriter;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -23,6 +24,8 @@ import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
@@ -37,7 +41,7 @@ import javax.sql.DataSource;
  * DAO is a lightweight and basic ORM (Object Relational Mapping) and expose primary methods to handle data in RDBMS.
  * DAO generates standard SQL, specific instructions can be executed passing sql statements and using DAO only as pojo-sql mapping engine.
  *  
- * @author Alessandro Atria - a.atri@gmail.com
+ * @author Alessandro Atria - a.atria@gmail.com
  *
  */
 public enum DAO {
@@ -51,19 +55,6 @@ public enum DAO {
 	private Release release;
 	private static final Map<String, Map<String, Object>> cached_objects = new TreeMap<>(); 
 	private static final Map<String, List<Class<?>>> cached_classes = new TreeMap<>();
-	
-	@FunctionalInterface
-	public interface Release extends Consumer<Connection> {
-		@Override
-		default void accept(final Connection elem) {
-			try {
-				acceptThrows(elem);
-			} catch (final Exception e) {
-				throw new RuntimeException(e);
-			}
-		}
-		void acceptThrows(Connection elem) throws Exception;
-	}
 	
 	public void setup(SqlDialect sqlDialect, DataSource ds) {
 		setup(sqlDialect, ds, c->{});
@@ -647,5 +638,62 @@ public enum DAO {
 		 * @return
 		 */
 		boolean cache() default false;
+	}
+	
+	@FunctionalInterface
+	public interface Release extends Consumer<Connection> {
+		@Override
+		default void accept(final Connection elem) {
+			try {
+				acceptThrows(elem);
+			} catch (final Exception e) {
+				throw new RuntimeException(e);
+			}
+		}
+		void acceptThrows(Connection elem) throws Exception;
+	}
+	
+	public static class SingleConnectionDataSource implements DataSource {
+		private PrintWriter out = new PrintWriter(System.out);
+		private final Connection conn;
+		
+		public SingleConnectionDataSource(Connection conn) {
+			this.conn = conn;
+		}
+		
+		@Override
+		public PrintWriter getLogWriter() throws SQLException {
+			return out;
+		}
+
+		@Override
+		public void setLogWriter(PrintWriter out) throws SQLException {
+			this.out = out;
+		}
+
+		@Override
+		public void setLoginTimeout(int seconds) throws SQLException {}
+
+		@Override
+		public int getLoginTimeout() throws SQLException { return 0; }
+
+		@Override
+		public Logger getParentLogger() throws SQLFeatureNotSupportedException { return null; }
+
+		@Override
+		public <T> T unwrap(Class<T> iface) throws SQLException { return null; }
+
+		@Override
+		public boolean isWrapperFor(Class<?> iface) throws SQLException {return false;}
+
+		@Override
+		public Connection getConnection() throws SQLException {
+			return conn;
+		}
+
+		@Override
+		public Connection getConnection(String username, String password) throws SQLException {
+			return conn;
+		}
 	}
 }
