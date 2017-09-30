@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-public class SqlUtils {
+class SqlUtils {
 	static PreparedStatement sqlSelect(Connection con, Object entity) throws Exception {
 		StringBuilder buffer = new StringBuilder("select * ");
 		buffer.append(" from ");

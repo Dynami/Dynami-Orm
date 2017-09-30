@@ -15,6 +15,10 @@
  */
 package org.dynami.orm;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -33,7 +37,7 @@ import javax.sql.DataSource;
  * DAO is a lightweight and basic ORM (Object Relational Mapping) and expose primary methods to handle data in RDBMS.
  * DAO generates standard SQL, specific instructions can be executed passing sql statements and using DAO only as pojo-sql mapping engine.
  *  
- * @author Alessandro Atria a.atri@gmail.com
+ * @author Alessandro Atria - a.atri@gmail.com
  *
  */
 public enum DAO {
@@ -61,11 +65,11 @@ public enum DAO {
 		void acceptThrows(Connection elem) throws Exception;
 	}
 	
-	public void setUp(SqlDialect sqlDialect, DataSource ds) {
-		setUp(sqlDialect, ds, null);
+	public void setup(SqlDialect sqlDialect, DataSource ds) {
+		setup(sqlDialect, ds, null);
 	}
 	
-	public void setUp(SqlDialect sqlDialect, DataSource ds, Release release) {
+	public void setup(SqlDialect sqlDialect, DataSource ds, Release release) {
 		this.ds = ds;
 		this.sqlDialect = sqlDialect;
 		this.release = release;
@@ -579,5 +583,69 @@ public enum DAO {
 			System.out.println("\t-->"+DAOReflect.getName(field));
 			DAOReflect.set(entity, field, res.getString(DAOReflect.getName(field)));
 		}
+	}
+	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.FIELD)
+	public @interface IField {
+		
+		/**
+		 * Indicates field as Primary key
+		 * @return
+		 */
+		boolean pk() default false;
+		
+		/**
+		 * Generate serial number for field
+		 * @return
+		 */
+		boolean serial() default false;
+		
+		/**
+		 * Indicates whether the field can be settled with a null value
+		 * @return
+		 */
+		boolean nullable() default true;
+		
+		/**
+		 * Indicates whether the field can be duplicated
+		 * @return
+		 */
+		boolean unique() default false;
+		
+		/**
+		 * Defines column name, if isn't specified it is equal to field name 
+		 * @return
+		 */
+		String name() default "";
+		
+		/**
+		 * Override default "java type"/"sqlite type" mapping
+		 * @return
+		 */
+		String type() default "";
+		
+		String defaultValue() default ""; 
+		
+		int lenght() default 0;
+		
+		/**
+		 * Refers to one to many relation object
+		 * @return
+		 */
+		Class<?> fk() default Object.class;
+		
+		boolean index() default false;
+	}
+	
+	@Retention(RetentionPolicy.RUNTIME)
+	@Target(ElementType.TYPE)
+	public @interface IEntity {
+		String name() default "";
+		/**
+		 * Indicates whether object can be cached or not.
+		 * @return
+		 */
+		boolean cache() default false;
 	}
 }

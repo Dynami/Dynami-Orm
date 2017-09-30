@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alessandro Atria - a.atria@gmail.com
+ * Copyright 2017 Alessandro Atria - a.atria@gmail.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.dynami.orm.DAO.IEntity;
+import org.dynami.orm.DAO.IField;
 import org.dynami.orm.DAO.SqlDialect;
 
 class DAOReflect {
@@ -45,7 +47,7 @@ class DAOReflect {
 		Field[] fields = cache_fields.get(e.getName());
 		for (int i = 0; i < fields.length; i++) {
 			IField f = fields[i].getAnnotation(IField.class);
-			if(f != null && (f.pk() || f.vpk())){
+			if(f != null && f.pk()){
 				pks.add(fields[i]);
 			}
 		}
