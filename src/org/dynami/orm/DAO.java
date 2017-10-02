@@ -47,7 +47,7 @@ import javax.sql.DataSource;
 public enum DAO {
 	$;
 	
-	public enum SqlDialect {Sqlite, MySql};
+	public enum SqlDialect {Sqlite, MySql, PostgreSql};
 	
 	private final static String INNER_DB = "INNER_DB";
 	private DataSource ds;

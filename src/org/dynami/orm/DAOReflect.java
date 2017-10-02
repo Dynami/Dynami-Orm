@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 
 import org.dynami.orm.DAO.IEntity;
 import org.dynami.orm.DAO.IField;
@@ -166,21 +167,25 @@ class DAOReflect {
 		}
 	}
 	
-	public static String sqlTableScript(DAO.SqlDialect rdbms, Class<?> clazz) throws Exception {
-		if(DAO.SqlDialect.Sqlite.equals(rdbms)) {
-			return sqliteTableScript(clazz);
-		} else if(DAO.SqlDialect.MySql.equals(rdbms)) {
-			return mySqlTableScript(clazz);
-		} else {
-			return null;
-		}
-	}
 	
-	private static String sqliteTableScript(Class<?> clazz) throws Exception {
+	static String sqlTableScript(DAO.SqlDialect dialect, Class<?> clazz) throws Exception {
 		if(clazz == null){
 			throw new RuntimeException("Object passed as parameter not valued");
 		}
-		//Class<?> c = getEntity(clazz);
+		BiFunction<IField, Field, String> dataTypeProvider = null;
+		switch (dialect) {
+		case Sqlite:
+			dataTypeProvider = sqliteDataTypeProvider;
+			break;
+		case MySql:
+			dataTypeProvider = mySqlDataTypeProvider;
+			break;
+		case PostgreSql:
+			dataTypeProvider = postgreSqlDataTypeProvider;
+			break;
+		default:
+			break;
+		}
 		IEntity a = clazz.getAnnotation(IEntity.class);
 		if(a == null){
 			throw new RuntimeException("Object passed as parameter not a valid table class");
@@ -201,7 +206,7 @@ class DAOReflect {
 //			buffer.append("\t");
 			fieldName = getName(fields[i]);
 			tableBuffer.append(fieldName);
-			tableBuffer.append(getType(SqlDialect.Sqlite, fields[i]));
+			tableBuffer.append(getType(SqlDialect.Sqlite, f, fields[i], dataTypeProvider));
 			if(f.pk()){
 				if(isPrimaryKeySetted) {
 					pkBuilder.append(", ");
@@ -209,9 +214,9 @@ class DAOReflect {
 				pkBuilder.append(fieldName);
 				isPrimaryKeySetted = true;
 			}
-			if(f.serial()){
-				tableBuffer.append(" AUTOINCREMENT ");
-			}
+//			if(f.serial()){
+//				tableBuffer.append(" AUTOINCREMENT ");
+//			}
 			if(!f.nullable()){
 				tableBuffer.append(" NOT NULL ");
 			}
@@ -245,75 +250,7 @@ class DAOReflect {
 		return tableBuffer.toString()+indexBuffer.toString();
 	}
 	
-	private static String mySqlTableScript(Class<?> clazz) throws Exception {
-		if(clazz == null){
-			throw new RuntimeException("Object passed as parameter not valued");
-		}
-		//Class<?> c = getEntity(clazz);
-		IEntity a = clazz.getAnnotation(IEntity.class);
-		if(a == null){
-			throw new RuntimeException("Object passed as parameter not a valid table class");
-		}
-		String tableName = getTableName(clazz);
-		String fieldName;
-		StringBuilder tableBuffer = new StringBuilder();
-		StringBuilder indexBuffer = new StringBuilder();
-		StringBuilder pkBuilder = new StringBuilder(" ,PRIMARY KEY(");
-		tableBuffer.append("CREATE TABLE IF NOT EXISTS ");
-		tableBuffer.append(tableName);
-		tableBuffer.append(" ( ");
-		Field[] fields = fields(clazz, true);
-		IField f = null;
-		boolean isPrimaryKeySetted = false;
-		for (int i = 0; i < fields.length; i++) {
-			f = fields[i].getAnnotation(IField.class);
-//			buffer.append("\t");
-			fieldName = getName(fields[i]);
-			tableBuffer.append(fieldName);
-			tableBuffer.append(getType(SqlDialect.MySql, fields[i]));
-			if(f.pk()){
-				if(isPrimaryKeySetted) {
-					pkBuilder.append(", ");
-				}
-				pkBuilder.append(fieldName);
-				isPrimaryKeySetted = true;
-			}
-			if(f.serial()){
-				tableBuffer.append(" AUTO_INCREMENT ");
-			}
-			if(!f.nullable()){
-				tableBuffer.append(" NOT NULL ");
-			}
-			if(f.unique()){
-				tableBuffer.append(" UNIQUE ");
-			}
-			if(!"".equals(f.defaultValue())){
-				tableBuffer.append(" DEFAULT "+f.defaultValue());
-			}
-			
-			if(f.index()){
-				indexBuffer.append("\nCREATE INDEX IF NOT EXISTS ");
-				indexBuffer.append(tableName);
-				indexBuffer.append("_");
-				indexBuffer.append(fieldName);
-				indexBuffer.append("_idx ON ");
-				indexBuffer.append(tableName);
-				indexBuffer.append("(");
-				indexBuffer.append(fieldName);
-				indexBuffer.append(");");
-			}
-			
-			if(i < fields.length-1)
-			tableBuffer.append(",");
-		}
-		if(isPrimaryKeySetted) {
-			pkBuilder.append(")");
-			tableBuffer.append(pkBuilder.toString());
-		}
-		tableBuffer.append(");");
-		return tableBuffer.toString()+indexBuffer.toString();
-	}
-	
+
 	public static String getTableName(Class<?> e){
 		IEntity a = e.getAnnotation(IEntity.class);
 		if(a == null || "".equals( a.name()))
@@ -394,9 +331,18 @@ class DAOReflect {
 		}
 	}
 	
-	private static String getType(DAO.SqlDialect rdbms, Field field){
-		IField f = field.getAnnotation(IField.class);
-		if(f == null || "".equals( f.type())){
+	private static String getType(DAO.SqlDialect sqlDialect, IField a, Field field, 
+			BiFunction<IField, Field, String> dataTypeProvider) {
+		if(a == null || "".equals( a.type())){
+			return dataTypeProvider.apply(a, field);
+		} else {
+			return a.type();
+		}
+	}
+	
+	private static BiFunction<IField, Field, String> sqliteDataTypeProvider = new BiFunction<DAO.IField, Field, String>() {
+		@Override
+		public String apply(IField f, Field field) {
 			if(field.getType().equals(String.class)){
 				if(f.lenght() != 0){
 					return " VARCHAR("+f.lenght()+") ";
@@ -404,46 +350,83 @@ class DAOReflect {
 					return " VARCHAR(255) ";
 				}
 			} else if(field.getType().equals(java.util.Date.class)){
-				if(SqlDialect.Sqlite.equals(rdbms)) {
-					return " INTEGER ";
-				} else if(SqlDialect.MySql.equals(rdbms)) {
-					return " DATETIME ";
-				}
+				return " INTEGER ";				
 			} else if(field.getType().equals(double.class)){
-				if(SqlDialect.Sqlite.equals(rdbms)) {
-					return " REAL ";
-				} else if(SqlDialect.MySql.equals(rdbms)) {
-					return " DOUBLE ";
-				}
-				
+				return " REAL ";
 			} else if(field.getType().equals(float.class)){
-				if(SqlDialect.Sqlite.equals(rdbms)) {
-					return " REAL ";
-				} else if(SqlDialect.MySql.equals(rdbms)) {
-					return " FLOAT ";
-				}
-			} else if(field.getType().equals(int.class)){
-				return " INTEGER ";
+				return " REAL ";
+			} else if(field.getType().equals(int.class)){				
+				return " INTEGER "+(f.serial()?"AUTOINCREMENT ":"");
 			} else if(field.getType().equals(boolean.class)){
-				if(SqlDialect.Sqlite.equals(rdbms)) {
-					return " INTEGER ";
-				} else if(SqlDialect.MySql.equals(rdbms)) {
-					return " BOOLEAN ";
-				}
+				return " INTEGER ";
 			} else if(field.getType().equals(long.class)){
-				if(SqlDialect.Sqlite.equals(rdbms)) {
-					return " INTEGER ";
-				} else if(SqlDialect.MySql.equals(rdbms)) {
-					return " BIGINT ";
-				}
+				return " INTEGER "+(f.serial()?"AUTOINCREMENT ":"");
 			} else {
 				return " VARCHAR(50) ";
 			}
-		} else {
-			return " "+f.type()+" ";
 		}
-		return null;
-	}
+	};
+	
+	private static BiFunction<IField, Field, String> mySqlDataTypeProvider = new BiFunction<DAO.IField, Field, String>() {
+		public String apply(IField f, Field field) {
+			if(field.getType().equals(String.class)){
+				if(f.lenght() != 0){
+					return " VARCHAR("+f.lenght()+") ";
+				} else {
+					return " VARCHAR(255) ";
+				}
+			} else if(field.getType().equals(java.util.Date.class)){
+				return " DATETIME ";
+			} else if(field.getType().equals(double.class)){
+				return " DOUBLE ";
+			} else if(field.getType().equals(float.class)){
+				return " FLOAT ";
+			} else if(field.getType().equals(int.class)){
+				return " INTEGER "+(f.serial()?"AUTO_INCREMENT ":"");
+			} else if(field.getType().equals(boolean.class)){
+				return " BOOLEAN ";
+			} else if(field.getType().equals(long.class) ){
+				return " BIGINT "+(f.serial()?"AUTO_INCREMENT ":"");
+			} else {
+				return " VARCHAR(50) ";
+			}
+		};
+	};
+	
+	private static BiFunction<IField, Field, String> postgreSqlDataTypeProvider = new BiFunction<DAO.IField, Field, String>() {
+		public String apply(IField f, Field field) {
+			if(field.getType().equals(String.class)){
+				if(f.lenght() != 0){
+					return " VARCHAR("+f.lenght()+") ";
+				} else {
+					return " VARCHAR(255) ";
+				}
+			} else if(field.getType().equals(java.util.Date.class)){
+				return " TIMESTAMP ";
+			} else if(field.getType().equals(double.class)){
+				return " DOUBLE PRECISION ";
+			} else if(field.getType().equals(float.class)){
+				return " REAL ";
+			} else if(field.getType().equals(int.class) && !f.serial()){
+				return " INTEGER ";
+			} else if(field.getType().equals(int.class) && f.serial()){
+				return " SERIAL ";
+			} else if(field.getType().equals(short.class) && !f.serial()){
+				return " SMALLINT ";
+			} else if(field.getType().equals(short.class) && f.serial()){
+				return " SMALLSERIAL ";
+			} else if(field.getType().equals(boolean.class)){
+				return " BOOLEAN ";
+			} else if(field.getType().equals(long.class) && !f.serial()){
+				return " BIGINT ";
+			} else if(field.getType().equals(long.class) && f.serial()){
+				return " BIGSERIAL ";
+			} else {
+				return " VARCHAR(50) ";
+			}
+		};
+	};
+	
 	
 	public static Field getName(Class<?> clazz, String field) throws Exception{
 		return getField(clazz, field);
