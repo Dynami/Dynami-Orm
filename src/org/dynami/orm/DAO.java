@@ -407,6 +407,45 @@ public enum DAO {
 		}
 	}
 	
+	public <T extends Number> List<T> numbers(Class<T> clazz, String sql, Object...values) throws Exception{
+		if(ds == null) throw new Exception("Datasource not settled up");
+		Connection conn = ds.getConnection();
+		PreparedStatement pstmt = null;
+		ResultSet res = null;
+		List<T> output = new ArrayList<>();
+		try {
+			pstmt = conn.prepareStatement(sql);
+			int idx = 1;
+			for(Object v:values){
+				pstmt.setObject(idx++, v);
+			}
+			res = pstmt.executeQuery();
+			while(res.next()){
+				if(clazz.equals(Double.class)){
+					output.add( clazz.getConstructor(double.class).newInstance(res.getDouble(1)) );
+				} else if(clazz.equals(Float.class)){
+					output.add( clazz.getConstructor(float.class).newInstance(res.getFloat(1)) );
+				} else if(clazz.equals(Integer.class)){
+					output.add( clazz.getConstructor(int.class).newInstance(res.getInt(1)) );
+				} else if(clazz.equals(Long.class)){
+					output.add( clazz.getConstructor(long.class).newInstance(res.getLong(1)) );
+				} else if(clazz.equals(Short.class)){
+					output.add( clazz.getConstructor(short.class).newInstance(res.getShort(1)) );
+				} else if(clazz.equals(Boolean.class)){
+					output.add( clazz.getConstructor(boolean.class).newInstance(res.getBoolean(1)) );
+				} else {
+					return null;
+				}
+			}
+			return output;
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			SqlUtils.closeAll(pstmt, res);
+			release.accept(conn);
+		}
+	}
+	
 	public <T> List<T> select(Class<T> clazz, String sql, Object...values) throws Exception {
 		if(ds == null) throw new Exception("Datasource not settled up");
 		Connection conn = ds.getConnection();
