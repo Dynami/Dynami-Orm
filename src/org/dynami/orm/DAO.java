@@ -370,6 +370,8 @@ public enum DAO {
 		}
 	}
 	
+	
+	
 	public <T extends Number> T number(Class<T> clazz, String sql, Object...values) throws Exception{
 		if(ds == null) throw new Exception("Datasource not settled up");
 		Connection conn = ds.getConnection();

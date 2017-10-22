@@ -30,10 +30,10 @@ import org.dynami.orm.DAO.IField;
 import org.dynami.orm.DAO.SqlDialect;
 
 class DAOReflect {
-	private static SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
-	private static SimpleDateFormat DATE_TYPE = new SimpleDateFormat("yyyyMMdd");
-	private static Map<String,Class<?>> cache_classes = new TreeMap<String, Class<?>>();
-	private static Map<String,Field[]> cache_fields = new TreeMap<String, Field[]>();
+	private static final SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+	private static final SimpleDateFormat DATE_TYPE = new SimpleDateFormat("yyyyMMdd");
+	private static final Map<String,Class<?>> cache_classes = new TreeMap<String, Class<?>>();
+	private static final Map<String,Field[]> cache_fields = new TreeMap<String, Field[]>();
 	
 	public static final int TRUE = 1;
 	public static final int FALSE = 0;
