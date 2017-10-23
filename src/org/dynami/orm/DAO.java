@@ -44,17 +44,20 @@ import javax.sql.DataSource;
  * @author Alessandro Atria - a.atria@gmail.com
  *
  */
-public enum DAO {
-	$;
+public class DAO {
+	public static final DAO $ = new DAO();
+	public static final DAO newInstance() {
+		return new DAO();
+	}
+	private DAO() {}
 	
 	public enum SqlDialect {Sqlite, MySql, PostgreSql};
 	
-	private final static String INNER_DB = "INNER_DB";
 	private DataSource ds;
 	private SqlDialect sqlDialect;
 	private Release release;
 	private static final Map<String, Map<String, Object>> cached_objects = new TreeMap<>(); 
-	private static final Map<String, List<Class<?>>> cached_classes = new TreeMap<>();
+	private static final List<Class<?>> cached_classes = new ArrayList<>();
 	
 	public void setup(SqlDialect sqlDialect, DataSource ds) {
 		setup(sqlDialect, ds, c->{});
@@ -562,11 +565,8 @@ public enum DAO {
 		if(!DAOReflect.isEntity(entity)){
 			throw new Exception("Object passed as parameter is not an Entity");
 		}
-		if(!cached_classes.containsKey(INNER_DB)){
-			cached_classes.put(INNER_DB, new ArrayList<Class<?>>());
-		}
-		if(!cached_classes.get(INNER_DB).contains(entity)){
-			cached_classes.get(INNER_DB).add(entity);
+		if(!cached_classes.contains(entity)){
+			cached_classes.add(entity);
 			executeNativeSQL(DAOReflect.sqlTableScript(sqlDialect, DAOReflect.getEntity(entity)));
 		}
 		IEntity a = entity.getAnnotation(IEntity.class);
