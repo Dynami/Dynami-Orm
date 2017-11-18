@@ -338,6 +338,40 @@ public class DAO {
 		}
 	}
 	
+	public <T> int select(Consumer<T> fetch, Class<T> clazz, String sql, Object... values) throws Exception {
+		if(ds == null) throw new Exception("Datasource not settled up");
+		Connection conn = ds.getConnection();
+		PreparedStatement pstmt = null;
+		ResultSet res = null;
+		int processed = 0;
+		try {
+			pstmt = conn.prepareStatement(sql);
+			int idx = 1;
+			for(Object v:values){
+				pstmt.setObject(idx++, v);
+			}
+			
+			res = pstmt.executeQuery();
+			T obj = clazz.newInstance();
+			Field[] fields = DAOReflect.fields(obj, true); //entity.getClass().getDeclaredFields();
+			while(res.next()){
+				obj = clazz.newInstance();
+				for (int i = 0; i < fields.length; i++) {
+					setField(fields[i], obj, res);
+				}
+				fetch.accept((T)obj);
+				processed++;
+			}
+			return processed;
+		} catch (Exception e) {
+			//DAOUtils.logObject(criteria);
+			throw e;
+		} finally {
+			SqlUtils.closeAll(pstmt, res);
+			release.accept(conn);
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
 	public <T> int select(Criteria<T> criteria, Consumer<T> fetch) throws Exception {
 		checkEntityTable(criteria.clazz);
