@@ -86,7 +86,7 @@ public class DAO {
 			}
 		}
 		try{
-			Object entity = clazz.newInstance();
+			Object entity = clazz.getConstructor().newInstance();
 			Field[] pk = DAOReflect.pk(entity);
 			for (int i = 0; i < pk.length; i++) {
 				DAOReflect.set(entity, pk[i], primaryKey[i]);
@@ -280,7 +280,7 @@ public class DAO {
 			Field[] fields = DAOReflect.fields(entity, true); //entity.getClass().getDeclaredFields();
 			Object obj = null;
 			while(res.next()){
-				obj = entity.getClass().newInstance();
+				obj = entity.getClass().getConstructor().newInstance();
 				for (int i = 0; i < fields.length; i++) {
 					//System.out.println(fields[i].getName());
 					setField(fields[i], obj, res);
@@ -316,7 +316,7 @@ public class DAO {
 			Field[] fields = DAOReflect.fields(entity, true); //entity.getClass().getDeclaredFields();
 			Object obj = null;
 			if(res.next()){
-				obj = entity.getClass().newInstance();
+				obj = entity.getClass().getConstructor().newInstance();
 				for (int i = 0; i < fields.length; i++) {
 					//System.out.println(fields[i].getName());
 					setField(fields[i], obj, res);
@@ -352,10 +352,10 @@ public class DAO {
 			}
 			
 			res = pstmt.executeQuery();
-			T obj = clazz.newInstance();
+			T obj = clazz.getConstructor().newInstance();
 			Field[] fields = DAOReflect.fields(obj, true); //entity.getClass().getDeclaredFields();
 			while(res.next()){
-				obj = clazz.newInstance();
+				obj = clazz.getConstructor().newInstance();
 				for (int i = 0; i < fields.length; i++) {
 					setField(fields[i], obj, res);
 				}
@@ -383,7 +383,7 @@ public class DAO {
 			Object entity = criteria.getIEntity();
 			res = pstmt.executeQuery();
 			Field[] fields = DAOReflect.fields(entity, true); //entity.getClass().getDeclaredFields();
-			Object obj = entity.getClass().newInstance();
+			Object obj = entity.getClass().getConstructor().newInstance();
 			int processedRows = 0;
 			while(res.next()){
 				for (int i = 0; i < fields.length; i++) {
@@ -499,10 +499,10 @@ public class DAO {
 			}
 			
 			res = pstmt.executeQuery();
-			T obj = clazz.newInstance();
+			T obj = clazz.getConstructor().newInstance();
 			Field[] fields = DAOReflect.fields(obj, true); //entity.getClass().getDeclaredFields();
 			while(res.next()){
-				obj = clazz.newInstance();
+				obj = clazz.getConstructor().newInstance();
 				for (int i = 0; i < fields.length; i++) {
 					setField(fields[i], obj, res);
 				}
@@ -531,10 +531,10 @@ public class DAO {
 			}
 			
 			res = pstmt.executeQuery();
-			T obj = clazz.newInstance();
+			T obj = clazz.getConstructor().newInstance();
 			Field[] fields = DAOReflect.fields(obj, true); //entity.getClass().getDeclaredFields();
 			if(res.next()){
-				obj = clazz.newInstance();
+				obj = clazz.getConstructor().newInstance();
 				for (int i = 0; i < fields.length; i++) {
 					setField(fields[i], obj, res);
 				}
@@ -634,17 +634,17 @@ public class DAO {
 		} else if(field.getType().equals(java.util.Date.class)){
 			DAOReflect.set(entity, field, res.getDate(DAOReflect.getName(field)));
 		} else if(field.getType().equals(double.class)){
-			DAOReflect.set(entity, field, new Double(res.getDouble(DAOReflect.getName(field))));
+			DAOReflect.set(entity, field, res.getDouble(DAOReflect.getName(field)));
 		} else if(field.getType().equals(float.class)){
-			DAOReflect.set(entity, field, new Float(res.getFloat(DAOReflect.getName(field))));
+			DAOReflect.set(entity, field, res.getFloat(DAOReflect.getName(field)));
 		} else if(field.getType().equals(boolean.class)){
-			DAOReflect.set(entity, field, new Boolean(res.getBoolean(DAOReflect.getName(field))));
+			DAOReflect.set(entity, field, res.getBoolean(DAOReflect.getName(field)));
 		} else if(field.getType().equals(int.class)){
-			DAOReflect.set(entity, field, new Integer(res.getInt(DAOReflect.getName(field))));
+			DAOReflect.set(entity, field, res.getInt(DAOReflect.getName(field)));
 		} else if(field.getType().equals(short.class)){
-			DAOReflect.set(entity, field, new Short(res.getShort(DAOReflect.getName(field))));
+			DAOReflect.set(entity, field, res.getShort(DAOReflect.getName(field)));
 		} else if(field.getType().equals(long.class)){
-			DAOReflect.set(entity, field, new Long(res.getLong(DAOReflect.getName(field))));
+			DAOReflect.set(entity, field, res.getLong(DAOReflect.getName(field)));
 		} else {
 			System.out.println("\t-->"+DAOReflect.getName(field));
 			DAOReflect.set(entity, field, res.getString(DAOReflect.getName(field)));
