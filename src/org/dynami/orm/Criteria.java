@@ -22,7 +22,7 @@ import java.util.List;
 public class Criteria<T> {
 	
 	protected final Class<?> clazz;
-	protected final List<Where> criteria = new ArrayList<Where>();
+	protected final List<Where> criteria = new ArrayList<>();
 	protected Object entity;
 	protected String[] distinct = new String[0];
 	protected String[] orderBy = new String[0];
