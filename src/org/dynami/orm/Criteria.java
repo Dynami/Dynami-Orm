@@ -32,7 +32,7 @@ public class Criteria<T> {
 	public Criteria(Class<T> t){
 		this.clazz = DAOReflect.getEntity(t);
 		try {
-			this.entity = this.clazz.newInstance();
+			this.entity = this.clazz.getDeclaredConstructor().newInstance();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} 
