@@ -44,13 +44,15 @@ import javax.sql.DataSource;
  * @author Alessandro Atria - a.atria@gmail.com
  *
  */
-public class DAO {
-	public static final DAO $ = new DAO();
-	public static final DAO newInstance() {
-		return new DAO();
-	}
-	private DAO() {}
+public enum DAO {
+	$;
 	
+	//public static final DAO $ = new DAO();
+//	public static final DAO newInstance() {
+//		return new DAO();
+//	}
+//	private DAO() {}
+//	
 	public enum SqlDialect {Sqlite, MySql, PostgreSql};
 	
 	private DataSource ds;
